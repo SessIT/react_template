@@ -1,0 +1,947 @@
+import { useState, useEffect, useRef } from "react";
+
+/* ─── Google Fonts ─────────────────────────────────────────── */
+const GlobalStyles = () => (
+  <style>{`
+    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    /* ── LOGO-DERIVED PALETTE ──────────────────────────────────
+       Cyan  : #22E5F5 / #00D4E8
+       Blue  : #3B5BFF / #2040E8
+       Pink  : #D4008C / #E8006A
+       Orange: #F5A623 / #FF8C00
+       These are the exact hues from the SESS emblem rings.
+    ─────────────────────────────────────────────────────────── */
+
+    :root {
+      --pink:    #22E5F5;
+      --pink-dk: #00C4D8;
+      --blue:    #3B5BFF;
+      --blue-dk: #2040E8;
+      --pink:    #E8006A;
+      --pink-dk: #D4008C;
+      --amber:   #F5A623;
+      --amber-dk:#E09010;
+
+      /* Dark mode surfaces */
+      --bg:      #060810;
+      --surf:    #0C1018;
+      --surf2:   #111622;
+      --border:  rgba(34,229,245,0.14);
+      --border2: rgba(34,229,245,0.25);
+      --txt:     #E8EDF8;
+      --txt-dim: rgba(232,237,248,0.45);
+      --txt-muted: rgba(232,237,248,0.22);
+    }
+
+    .light {
+      --bg:      #F0F4FF;
+      --surf:    #FFFFFF;
+      --surf2:   #E8EDF8;
+      --border:  rgba(59,91,255,0.15);
+      --border2: rgba(59,91,255,0.30);
+      --txt:     #0C1018;
+      --txt-dim: rgba(12,16,24,0.55);
+      --txt-muted: rgba(12,16,24,0.30);
+    }
+
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--txt); }
+    .font-syne  { font-family: 'Syne', sans-serif !important; }
+    .font-mono  { font-family: 'DM Mono', monospace !important; }
+
+    ::-webkit-scrollbar { width: 3px; height: 3px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(34,229,245,0.18); border-radius: 4px; }
+
+    @keyframes fadeUp    { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes toastIn   { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes spinMe    { to { transform: rotate(360deg); } }
+    @keyframes pulseGlow { 0%,100%{opacity:1} 50%{opacity:.3} }
+    @keyframes gradShift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+    @keyframes dropIn    { from { opacity:0; transform:translateY(-8px) scale(.97); } to { opacity:1; transform:translateY(0) scale(1); } }
+
+    .anim-fadeup   { animation: fadeUp   0.32s ease both; }
+    .anim-toastin  { animation: toastIn  0.32s ease both; }
+    .anim-spin     { animation: spinMe   1s linear infinite; }
+    .anim-pulse    { animation: pulseGlow 2s infinite; }
+    .anim-grad     { background-size:200% 200%; animation: gradShift 7s ease infinite; }
+    .anim-dropin   { animation: dropIn   0.22s ease both; }
+
+    input[type="file"]::-webkit-file-upload-button {
+      background: rgba(34,229,245,0.08);
+      border: 1px solid rgba(34,229,245,0.25);
+      color: var(--pink);
+      padding: 5px 12px;
+      border-radius: 7px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    .field-input {
+      width: 100%;
+      padding: 11px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--txt);
+      font-size: 13.5px;
+      font-family: 'DM Sans', sans-serif;
+      outline: none;
+      transition: border-color .18s, box-shadow .18s;
+    }
+    .field-input:focus {
+      border-color: var(--pink);
+      box-shadow: 0 0 0 3px rgba(34,229,245,0.10);
+    }
+    .field-input:disabled, .field-input[readonly] { opacity: 0.45; cursor: not-allowed; }
+    .field-input::placeholder { color: var(--txt-muted); }
+    .field-input option { background: var(--surf); color: var(--txt); }
+
+    .field-computed {
+      width: 100%;
+      padding: 11px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(245,166,35,0.30);
+      background: rgba(245,166,35,0.06);
+      color: var(--amber);
+      font-size: 13.5px;
+      font-family: 'DM Mono', monospace;
+      font-weight: 500;
+      outline: none;
+      cursor: not-allowed;
+    }
+    textarea.field-input { resize: vertical; min-height: 88px; }
+
+    /* Sidebar transition */
+    .sidebar-collapsed { width: 64px !important; }
+    .sidebar-collapsed .hide-on-collapse { display: none !important; }
+    .sidebar-collapsed .nav-label { display: none !important; }
+
+    /* Tooltip for collapsed nav */
+    .nav-tooltip {
+      position: absolute;
+      left: calc(100% + 10px);
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--surf2);
+      border: 1px solid var(--border2);
+      color: var(--txt);
+      font-size: 12px;
+      font-family: 'DM Sans', sans-serif;
+      padding: 5px 10px;
+      border-radius: 8px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .15s;
+      z-index: 999;
+    }
+    .nav-btn:hover .nav-tooltip { opacity: 1; }
+  `}</style>
+);
+
+/* ─── Mock Session ───────────────────────────────────────────── */
+const SESSION = { employee_id: 1, employee_name: "Alex Johnson", designation: "Field Engineer" };
+
+/* ─── SESS Logo Emblem SVG ───────────────────────────────────── */
+const SESSEmblem = ({ size = 32 }) => (
+  <svg width={size} height={size} viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%"   stopColor="#22E5F5" />
+        <stop offset="35%"  stopColor="#3B5BFF" />
+        <stop offset="65%"  stopColor="#E8006A" />
+        <stop offset="100%" stopColor="#F5A623" />
+      </linearGradient>
+    </defs>
+    {/* Outer rings - concentric circles clipped as "S" shape */}
+    <circle cx="100" cy="100" r="95" stroke="url(#g1)" strokeWidth="9"  fill="none" />
+    <circle cx="100" cy="100" r="78" stroke="url(#g1)" strokeWidth="8"  fill="none" />
+    <circle cx="100" cy="100" r="62" stroke="url(#g1)" strokeWidth="7"  fill="none" />
+    <circle cx="100" cy="100" r="47" stroke="url(#g1)" strokeWidth="6"  fill="none" />
+    <circle cx="100" cy="100" r="33" stroke="url(#g1)" strokeWidth="6"  fill="none" />
+    <circle cx="100" cy="100" r="20" stroke="url(#g1)" strokeWidth="5"  fill="none" />
+    {/* Horizontal divider line */}
+    <line x1="5" y1="100" x2="195" y2="100" stroke="url(#g1)" strokeWidth="8" strokeLinecap="round" />
+  </svg>
+);
+
+/* ─── SVG Icon ───────────────────────────────────────────────── */
+const Ic = ({ d, size = 16, className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+    className={`flex-shrink-0 ${className}`}>
+    {Array.isArray(d) ? d.map((p, i) => <path key={i} d={p} />) : <path d={d} />}
+  </svg>
+);
+
+/* ─── Toast ──────────────────────────────────────────────────── */
+function Toast({ message, type, onClose }) {
+  useEffect(() => { const t = setTimeout(onClose, 4200); return () => clearTimeout(t); }, [onClose]);
+  const ok = type === "success";
+  return (
+    <div className={`fixed bottom-6 right-4 left-4 sm:left-auto sm:max-w-sm z-[9999] flex items-center gap-3 px-5 py-4 rounded-2xl text-sm font-semibold border shadow-2xl anim-toastin`}
+      style={{
+        background: ok ? "rgba(34,229,245,0.08)" : "rgba(232,0,106,0.08)",
+        borderColor: ok ? "rgba(34,229,245,0.30)" : "rgba(232,0,106,0.30)",
+        color: ok ? "var(--pink)" : "var(--pink)"
+      }}>
+      <Ic d={ok ? "M20 6L9 17l-5-5" : "M18 6L6 18M6 6l12 12"} size={15} />
+      <span className="flex-1">{message}</span>
+      <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", color:"inherit", opacity:.6 }}>✕</button>
+    </div>
+  );
+}
+
+/* ─── Section Card ───────────────────────────────────────────── */
+function SectionCard({ icon, iconBg, iconColor, title, sub, children }) {
+  return (
+    <div style={{ background:"var(--surf)", borderColor:"var(--border)" }}
+      className="border rounded-2xl mb-5 overflow-hidden transition-colors duration-300"
+      onMouseEnter={e => e.currentTarget.style.borderColor = "var(--border2)"}
+      onMouseLeave={e => e.currentTarget.style.borderColor = "var(--border)"}
+    >
+      <div style={{ borderColor:"var(--border)", background:`linear-gradient(90deg,${iconBg}18 0%, transparent 100%)` }}
+        className="flex items-center gap-3 px-5 py-4 border-b">
+        <div style={{ background:iconBg, color:iconColor }}
+          className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0">
+          <Ic d={icon} size={15} />
+        </div>
+        <div>
+          <p className="font-syne text-[13.5px] font-bold" style={{color:"var(--txt)"}}>{title}</p>
+          <p className="font-mono text-[10px] mt-0.5" style={{color:"var(--pink)",opacity:.5}}>{sub}</p>
+        </div>
+      </div>
+      <div className="p-5">{children}</div>
+    </div>
+  );
+}
+
+/* ─── Field ──────────────────────────────────────────────────── */
+function Field({ label, children }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="font-mono text-[10px] font-semibold uppercase tracking-[0.07em]" style={{color:"var(--pink)",opacity:.55}}>{label}</label>
+      {children}
+    </div>
+  );
+}
+
+const TInput    = ({ name, type="text", value, onChange, placeholder, required, readOnly, computed, accept }) => (
+  <input name={name} type={type} value={value} onChange={onChange} placeholder={placeholder}
+    required={required} readOnly={readOnly} accept={accept}
+    className={computed ? "field-computed" : "field-input"} />
+);
+const TSelect   = ({ name, value, onChange, required, children }) => (
+  <select name={name} value={value} onChange={onChange} required={required} className="field-input">{children}</select>
+);
+const TTextarea = ({ name, value, onChange, placeholder, required, rows=3 }) => (
+  <textarea name={name} value={value} onChange={onChange} placeholder={placeholder}
+    required={required} rows={rows} className="field-input" />
+);
+const TFile     = ({ name, onChange }) => (
+  <input type="file" name={name} accept="image/*,.pdf,.doc,.docx" onChange={onChange}
+    className="w-full px-3 py-2.5 rounded-xl text-sm cursor-pointer transition-colors"
+    style={{border:"1px solid var(--border)",background:"var(--bg)",color:"var(--txt-dim)"}} />
+);
+
+/* ─── Submit Button ──────────────────────────────────────────── */
+function SubmitBtn({ label, gradient, shadow, loading }) {
+  return (
+    <button type="submit" disabled={loading}
+      className="w-full flex items-center justify-center gap-3 py-4 mt-3 rounded-2xl font-syne text-[14px] font-bold tracking-wide border-none cursor-pointer transition-all duration-200 anim-grad"
+      style={{
+        background: loading ? "rgba(255,255,255,0.08)" : gradient,
+        color: loading ? "rgba(255,255,255,0.3)" : "#fff",
+        boxShadow: loading ? "none" : shadow,
+        cursor: loading ? "not-allowed" : "pointer",
+        backgroundSize: "200% 200%"
+      }}>
+      {loading && <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full anim-spin" />}
+      {loading ? "Submitting…" : label}
+    </button>
+  );
+}
+
+/* ─── Expense Group ──────────────────────────────────────────── */
+function ExpGroup({ label, badge, badgeColor, children }) {
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-3">
+        <span className="font-mono text-[10px] font-semibold uppercase tracking-wider" style={{color:"var(--txt-dim)"}}>{label}</span>
+        {badge && <span className="font-mono text-[9px] px-2 py-0.5 rounded-md" style={{background:badgeColor+"18",color:badgeColor}}>{badge}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/* ─── Nav Item ───────────────────────────────────────────────── */
+function NavItem({ icon, label, active, onClick, collapsed }) {
+  return (
+    <button onClick={onClick}
+      className="nav-btn relative flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium border transition-all duration-150 text-left cursor-pointer"
+      style={{
+        background: active ? "linear-gradient(90deg,var(--pink),var(--blue))" : "transparent",
+        color: active ? "#fff" : "var(--txt-dim)",
+        borderColor: "transparent",
+        justifyContent: collapsed ? "center" : "flex-start"
+      }}
+      onMouseEnter={e => { if(!active) { e.currentTarget.style.color="var(--txt)"; e.currentTarget.style.background="rgba(34,229,245,0.04)"; }}}
+      onMouseLeave={e => { if(!active) { e.currentTarget.style.color="var(--txt-dim)"; e.currentTarget.style.background="transparent"; }}}
+    >
+      <Ic d={icon} size={15} />
+      {!collapsed && <span className="flex-1 nav-label">{label}</span>}
+      {collapsed && <span className="nav-tooltip">{label}</span>}
+    </button>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MORNING TAB
+═══════════════════════════════════════════════════════════════ */
+function MorningTab({ employeeName, today, onSubmit, loading }) {
+  const [form, setForm] = useState({
+    checkin:"", checkout:"", total_hours:"", senior_junior:"",
+    customer_name:"", assigned_by:"", customer_type:"", task_type:"",
+    complaint_date:"", complaint_mode:"", complaint_person:"", complaint_description:"",
+    closure_date:"", priority:"Low", bill_no:"", bill_date:"",
+    spares_cost:"", service_cost:"",
+  });
+  const [file, setFile] = useState(null);
+
+  const set = k => e => {
+    const v = e.target.value;
+    setForm(prev => {
+      const next = { ...prev, [k]: v };
+      if (k === "checkin" || k === "checkout") {
+        const ci = k === "checkin" ? v : next.checkin;
+        const co = k === "checkout" ? v : next.checkout;
+        if (ci && co) {
+          let diff = (new Date("1970-01-01T"+co) - new Date("1970-01-01T"+ci)) / 3600000;
+          if (diff < 0) diff += 24;
+          next.total_hours = diff.toFixed(2);
+        }
+      }
+      return next;
+    });
+  };
+
+  const handleSubmit = e => { e.preventDefault(); const fd = new FormData(e.target); if(file) fd.append("attachment",file); onSubmit("morning",fd,form); };
+
+  return (
+    <form onSubmit={handleSubmit} className="anim-fadeup">
+      <SectionCard icon="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2 M12 11a4 4 0 100-8 4 4 0 000 8z"
+        iconBg="rgba(34,229,245,0.12)" iconColor="var(--pink)" title="Basic Information" sub="Employee & date details">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Field label="Employee Name"><TInput value={employeeName} readOnly /></Field>
+          <Field label="Report Date"><TInput type="date" value={today} readOnly /></Field>
+          <Field label="Senior / Junior">
+            <TSelect name="senior_junior" value={form.senior_junior} onChange={set("senior_junior")} required>
+              <option value="">— Select Role —</option>
+              <option>Senior 2</option><option>Senior</option><option>Junior2</option><option>Junior</option>
+            </TSelect>
+          </Field>
+        </div>
+      </SectionCard>
+
+      <SectionCard icon="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M12 6v6l4 2"
+        iconBg="rgba(59,91,255,0.12)" iconColor="var(--blue)" title="Time Tracking" sub="Check-in, check-out & auto-calculated hours">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Field label="Check In Time"><TInput name="checkin" type="time" value={form.checkin} onChange={set("checkin")} required /></Field>
+          <Field label="Check Out Time"><TInput name="checkout" type="time" value={form.checkout} onChange={set("checkout")} required /></Field>
+          <Field label="Total Hours (Auto)"><TInput name="total_hours" value={form.total_hours} readOnly computed placeholder="—" /></Field>
+        </div>
+      </SectionCard>
+
+      <SectionCard icon={["M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2","M9 11a4 4 0 100-8 4 4 0 000 8z","M23 21v-2a4 4 0 00-3-3.87","M16 3.13a4 4 0 010 7.75"]}
+        iconBg="rgba(34,229,245,0.08)" iconColor="var(--pink)" title="Customer & Task Details" sub="Who and what you worked on">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+          <Field label="Customer Name"><TInput name="customer_name" value={form.customer_name} onChange={set("customer_name")} placeholder="Customer name" required /></Field>
+          <Field label="Assigned By"><TInput name="assigned_by" value={form.assigned_by} onChange={set("assigned_by")} placeholder="Supervisor / Manager" required /></Field>
+          <Field label="Customer Type"><TInput name="customer_type" value={form.customer_type} onChange={set("customer_type")} placeholder="e.g. Corporate, Retail" required /></Field>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Field label="Task Type"><TInput name="task_type" value={form.task_type} onChange={set("task_type")} placeholder="e.g. Installation, Repair" required /></Field>
+          <Field label="Complaint Date"><TInput name="complaint_date" type="date" value={form.complaint_date} onChange={set("complaint_date")} required /></Field>
+          <Field label="Complaint Mode"><TInput name="complaint_mode" value={form.complaint_mode} onChange={set("complaint_mode")} placeholder="e.g. Phone, Email" required /></Field>
+        </div>
+      </SectionCard>
+
+      <SectionCard icon="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z M12 9v4 M12 17h.01"
+        iconBg="rgba(245,166,35,0.12)" iconColor="var(--amber)" title="Complaint Details" sub="Description, person & closure info">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <Field label="Complaint Person"><TInput name="complaint_person" value={form.complaint_person} onChange={set("complaint_person")} placeholder="Contact person name" required /></Field>
+          <Field label="Priority">
+            <TSelect name="priority" value={form.priority} onChange={set("priority")}>
+              <option value="Low">🟢 Low</option>
+              <option value="Medium">🟡 Medium</option>
+              <option value="High">🔴 High</option>
+            </TSelect>
+          </Field>
+        </div>
+        <div className="mb-4">
+          <Field label="Complaint Description">
+            <TTextarea name="complaint_description" value={form.complaint_description} onChange={set("complaint_description")} placeholder="Describe the complaint or task in detail..." required />
+          </Field>
+        </div>
+        <div className="max-w-xs">
+          <Field label="Closure Date"><TInput name="closure_date" type="date" value={form.closure_date} onChange={set("closure_date")} required /></Field>
+        </div>
+      </SectionCard>
+
+      <SectionCard icon="M12 1v22 M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"
+        iconBg="rgba(34,229,245,0.10)" iconColor="var(--pink)" title="Billing Information" sub="Bill number, date and cost breakdown">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <Field label="Bill No"><TInput name="bill_no" value={form.bill_no} onChange={set("bill_no")} placeholder="BL-XXXX" /></Field>
+          <Field label="Bill Date"><TInput name="bill_date" type="date" value={form.bill_date} onChange={set("bill_date")} /></Field>
+          <Field label="Spares Cost (₹)"><TInput name="spares_cost" type="number" value={form.spares_cost} onChange={set("spares_cost")} placeholder="0.00" /></Field>
+          <Field label="Service Cost (₹)"><TInput name="service_cost" type="number" value={form.service_cost} onChange={set("service_cost")} placeholder="0.00" /></Field>
+        </div>
+      </SectionCard>
+
+      <SectionCard icon="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"
+        iconBg="rgba(59,91,255,0.10)" iconColor="var(--blue)" title="Attachment" sub="Upload supporting document or image">
+        <div className="max-w-md">
+          <Field label="File Attachment"><TFile name="attachment" onChange={e => setFile(e.target.files[0])} /></Field>
+        </div>
+      </SectionCard>
+
+      <SubmitBtn label="☀️  Submit Morning Report" loading={loading}
+        gradient="linear-gradient(135deg,var(--pink),var(--blue))"
+        shadow="0 8px 32px rgba(34,229,245,0.25)" />
+    </form>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EVENING TAB
+═══════════════════════════════════════════════════════════════ */
+function EveningTab({ employeeName, today, onSubmit, loading }) {
+  const [form, setForm] = useState({
+    senior_junior_evening:"", customer_name_evening:"", work_type:"",
+    task_status:"", completed_date:"", model_no:"", serial_no:"",
+    tomorrow_plan:"", km_start:"", scope_detail:"",
+    bus_fare:"", bus_detail:"", lodging_fare:"", lodging_detail:"",
+    food_charges:"", local_exp:"", local_exp_detail:"", km_end:"",
+    travel_detail:"", transport_charge:"", transport_reason:"",
+    auto_charge:"", auto_reason:"", material_cost:"", material_bill:"",
+  });
+  const [file, setFile] = useState(null);
+  const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+  const handleSubmit = e => { e.preventDefault(); const fd = new FormData(e.target); if(file) fd.append("attachment_evening",file); onSubmit("evening",fd,form); };
+  const divider = { borderBottom:"1px solid var(--border)", paddingBottom:"1.25rem", marginBottom:"1.25rem" };
+
+  return (
+    <form onSubmit={handleSubmit} className="anim-fadeup">
+      <SectionCard icon="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2 M12 11a4 4 0 100-8 4 4 0 000 8z"
+        iconBg="rgba(245,166,35,0.12)" iconColor="var(--amber)" title="Basic Information" sub="Employee & date details">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Field label="Employee Name"><TInput value={employeeName} readOnly /></Field>
+          <Field label="Report Date"><TInput type="date" value={today} readOnly /></Field>
+          <Field label="Senior / Junior"><TInput name="senior_junior_evening" value={form.senior_junior_evening} onChange={set("senior_junior_evening")} placeholder="Senior / Junior" required /></Field>
+        </div>
+      </SectionCard>
+
+      <SectionCard icon="M9 11l3 3L22 4 M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"
+        iconBg="rgba(34,229,245,0.10)" iconColor="var(--pink)" title="Work Summary" sub="Customer, work type, task status & equipment">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+          <Field label="Customer Name"><TInput name="customer_name_evening" value={form.customer_name_evening} onChange={set("customer_name_evening")} placeholder="Customer name" required /></Field>
+          <Field label="Work Type"><TInput name="work_type" value={form.work_type} onChange={set("work_type")} placeholder="e.g. AMC, Repair" required /></Field>
+          <Field label="Task Status"><TInput name="task_status" value={form.task_status} onChange={set("task_status")} placeholder="Completed / Pending" required /></Field>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+          <Field label="Completed Date"><TInput name="completed_date" type="date" value={form.completed_date} onChange={set("completed_date")} required /></Field>
+          <Field label="Model No"><TInput name="model_no" value={form.model_no} onChange={set("model_no")} placeholder="Equipment model" required /></Field>
+          <Field label="Serial No"><TInput name="serial_no" value={form.serial_no} onChange={set("serial_no")} placeholder="Equipment serial" required /></Field>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <Field label="Tomorrow's Plan"><TInput name="tomorrow_plan" value={form.tomorrow_plan} onChange={set("tomorrow_plan")} placeholder="Plan for next day" /></Field>
+          <Field label="KM Start"><TInput name="km_start" type="number" value={form.km_start} onChange={set("km_start")} placeholder="Odometer at start" /></Field>
+        </div>
+        <Field label="Scope Detail">
+          <TTextarea name="scope_detail" value={form.scope_detail} onChange={set("scope_detail")} placeholder="Describe the scope of work done today in detail..." required />
+        </Field>
+      </SectionCard>
+
+      <SectionCard icon="M12 1v22 M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"
+        iconBg="rgba(232,0,106,0.10)" iconColor="var(--pink)" title="Expense Details" sub="Travel, lodging, food & all other charges">
+
+        <div style={divider} className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <ExpGroup label="Bus / Transport" badge="TRAVEL" badgeColor="var(--blue)">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Bus Fare (₹)"><TInput name="bus_fare" type="number" value={form.bus_fare} onChange={set("bus_fare")} placeholder="0.00" /></Field>
+              <Field label="Bus Detail"><TInput name="bus_detail" value={form.bus_detail} onChange={set("bus_detail")} placeholder="Route / operator" /></Field>
+            </div>
+          </ExpGroup>
+          <ExpGroup label="Lodging / Stay" badge="STAY" badgeColor="var(--pink)">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Lodging Fare (₹)"><TInput name="lodging_fare" type="number" value={form.lodging_fare} onChange={set("lodging_fare")} placeholder="0.00" /></Field>
+              <Field label="Lodging Detail"><TInput name="lodging_detail" value={form.lodging_detail} onChange={set("lodging_detail")} placeholder="Hotel name" /></Field>
+            </div>
+          </ExpGroup>
+        </div>
+
+        <div style={divider} className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <ExpGroup label="Food" badge="FOOD" badgeColor="var(--amber)">
+            <Field label="Food Charges (₹)"><TInput name="food_charges" type="number" value={form.food_charges} onChange={set("food_charges")} placeholder="0.00" /></Field>
+          </ExpGroup>
+          <ExpGroup label="Local Expense" badge="LOCAL" badgeColor="var(--pink)">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Local Exp (₹)"><TInput name="local_exp" type="number" value={form.local_exp} onChange={set("local_exp")} placeholder="0.00" /></Field>
+              <Field label="Detail"><TInput name="local_exp_detail" value={form.local_exp_detail} onChange={set("local_exp_detail")} placeholder="Description" /></Field>
+            </div>
+          </ExpGroup>
+        </div>
+
+        <div style={divider} className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <ExpGroup label="Odometer & Travel" badge="KM" badgeColor="var(--blue)">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="KM End"><TInput name="km_end" type="number" value={form.km_end} onChange={set("km_end")} placeholder="Odometer end" /></Field>
+              <Field label="Travel Detail"><TInput name="travel_detail" value={form.travel_detail} onChange={set("travel_detail")} placeholder="Route / vehicle" /></Field>
+            </div>
+          </ExpGroup>
+          <ExpGroup label="Transport Charge" badge="FARE" badgeColor="var(--pink)">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Transport (₹)"><TInput name="transport_charge" type="number" value={form.transport_charge} onChange={set("transport_charge")} placeholder="0.00" /></Field>
+              <Field label="Reason"><TInput name="transport_reason" value={form.transport_reason} onChange={set("transport_reason")} placeholder="Reason" /></Field>
+            </div>
+          </ExpGroup>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <ExpGroup label="Auto Charge">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Auto (₹)"><TInput name="auto_charge" type="number" value={form.auto_charge} onChange={set("auto_charge")} placeholder="0.00" /></Field>
+              <Field label="Reason"><TInput name="auto_reason" value={form.auto_reason} onChange={set("auto_reason")} placeholder="Reason" /></Field>
+            </div>
+          </ExpGroup>
+          <ExpGroup label="Material" badge="PARTS" badgeColor="var(--amber)">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Material (₹)"><TInput name="material_cost" type="number" value={form.material_cost} onChange={set("material_cost")} placeholder="0.00" /></Field>
+              <Field label="Bill No"><TInput name="material_bill" value={form.material_bill} onChange={set("material_bill")} placeholder="Reference" /></Field>
+            </div>
+          </ExpGroup>
+        </div>
+      </SectionCard>
+
+      <SectionCard icon="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"
+        iconBg="rgba(59,91,255,0.10)" iconColor="var(--blue)" title="Attachment" sub="Upload evening report supporting file">
+        <div className="max-w-md">
+          <Field label="File Attachment"><TFile name="attachment_evening" onChange={e => setFile(e.target.files[0])} /></Field>
+        </div>
+      </SectionCard>
+
+      <SubmitBtn label="🌙  Submit Evening Report" loading={loading}
+        gradient="linear-gradient(135deg,var(--pink),var(--pink-dk))"
+        shadow="0 8px 32px rgba(232,0,106,0.25)" />
+    </form>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ATTENDANCE TAB
+═══════════════════════════════════════════════════════════════ */
+function AttendanceTab({ attendanceRecord, onPunchIn, onPunchOut, loading }) {
+  const [gpsStatus, setGpsStatus] = useState("acquiring");
+  const [gpsText,   setGpsText]   = useState("Acquiring GPS location…");
+  const [coords,    setCoords]    = useState({ lat:"", lng:"" });
+
+  useEffect(() => {
+    if (!navigator.geolocation) { setGpsStatus("denied"); setGpsText("⚠️ Geolocation not supported."); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => { setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setGpsStatus("located"); setGpsText(`📍 ${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`); },
+      ()  => { setGpsStatus("denied"); setGpsText("⚠️ Location access denied. Please allow GPS."); }
+    );
+  }, []);
+
+  const dateDisplay = new Date().toLocaleDateString("en-IN", { weekday:"short", day:"numeric", month:"short", year:"numeric" });
+  const tiles = [
+    { label:"Today",    val: dateDisplay,                              color:"var(--pink)" },
+    { label:"Punch In", val: attendanceRecord?.punch_in  || "—",      color:"var(--pink)" },
+    { label: attendanceRecord?.total_hours ? "Total Hours" : "Punch Out",
+      val: attendanceRecord?.total_hours ? attendanceRecord.total_hours+" hrs" : attendanceRecord?.punch_out || "—",
+      color: attendanceRecord?.punch_out ? "var(--amber)" : "var(--pink)" },
+  ];
+
+  return (
+    <div className="anim-fadeup">
+      <div className="grid grid-cols-3 gap-3 mb-5">
+        {tiles.map((t,i) => (
+          <div key={i} className="rounded-2xl p-4 border" style={{background:"var(--surf)",borderColor:"var(--border)"}}>
+            <p className="font-mono text-[9px] uppercase tracking-widest mb-2" style={{color:"var(--pink)",opacity:.5}}>{t.label}</p>
+            <p className="font-syne text-base sm:text-xl font-bold leading-snug" style={{color:t.color}}>{t.val}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-3 px-4 py-3 rounded-xl border mb-5 transition-colors"
+        style={{background:"var(--surf)",borderColor: gpsStatus==="located" ? "var(--border2)" : "var(--border)"}}>
+        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+          style={{background: gpsStatus==="located" ? "var(--pink)" : gpsStatus==="denied" ? "var(--pink)" : "#666",
+            animation: gpsStatus==="located" ? "pulseGlow 2s infinite" : "none"}} />
+        <span className="text-sm" style={{color: gpsStatus==="located" ? "var(--txt)" : "var(--txt-dim)"}}>{gpsText}</span>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Punch In */}
+        <div className="rounded-2xl p-7 flex flex-col items-center gap-4 text-center border"
+          style={{background:"rgba(34,229,245,0.06)",borderColor:"rgba(34,229,245,0.25)"}}>
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{background:"rgba(34,229,245,0.15)"}}>
+            <Ic d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M12 6v6l4 2" size={32} className="" style={{color:"var(--pink)"}} />
+          </div>
+          <p className="font-syne text-lg font-bold" style={{color:"var(--pink)"}}>Punch In</p>
+          <p className="text-sm leading-relaxed" style={{color:"var(--txt-dim)"}}>Record your start time with current GPS location. Ensure location access is granted before punching in.</p>
+          <button onClick={() => onPunchIn(coords)} disabled={loading}
+            className="w-full py-3.5 rounded-xl font-syne text-sm font-bold tracking-wide border-none cursor-pointer transition-all duration-200 anim-grad"
+            style={{background:"linear-gradient(135deg,var(--pink),var(--blue))",color:"#fff",boxShadow:"0 6px 24px rgba(34,229,245,0.22)",backgroundSize:"200% 200%"}}>
+            ✓ &nbsp; Punch In Now
+          </button>
+        </div>
+
+        {/* Punch Out */}
+        <div className="rounded-2xl p-7 flex flex-col items-center gap-4 text-center border"
+          style={{background:"rgba(232,0,106,0.06)",borderColor:"rgba(232,0,106,0.25)"}}>
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{background:"rgba(232,0,106,0.15)"}}>
+            <Ic d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M8 12h8 M12 8l4 4-4 4" size={32} style={{color:"var(--pink)"}} />
+          </div>
+          <p className="font-syne text-lg font-bold" style={{color:"var(--pink)"}}>Punch Out</p>
+          <p className="text-sm leading-relaxed" style={{color:"var(--txt-dim)"}}>End your shift and record your exit location. Working hours will be auto-calculated from punch-in time.</p>
+          <button onClick={() => onPunchOut(coords)} disabled={loading}
+            className="w-full py-3.5 rounded-xl font-syne text-sm font-bold tracking-wide border-none cursor-pointer transition-all duration-200 anim-grad"
+            style={{background:"linear-gradient(135deg,var(--pink),var(--pink-dk))",color:"#fff",boxShadow:"0 6px 24px rgba(232,0,106,0.22)",backgroundSize:"200% 200%"}}>
+            ✕ &nbsp; Punch Out Now
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ROOT APP
+═══════════════════════════════════════════════════════════════ */
+export default function EmployeeReport() {
+  const [activeTab,    setActiveTab]    = useState("morning");
+  const [sidebarOpen,  setSidebarOpen]  = useState(false);      // mobile
+  const [collapsed,    setCollapsed]    = useState(false);      // desktop
+  const [toast,        setToast]        = useState(null);
+  const [loading,      setLoading]      = useState(false);
+  const [attendanceRecord, setAttendance] = useState(null);
+  const [darkMode,     setDarkMode]     = useState(true);
+  const [profileOpen,  setProfileOpen]  = useState(false);
+  const [notifOpen,    setNotifOpen]    = useState(false);
+  const profileRef  = useRef(null);
+  const notifRef    = useRef(null);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handler = e => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
+      if (notifRef.current  && !notifRef.current.contains(e.target))  setNotifOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const today       = new Date().toISOString().split("T")[0];
+  const hour        = new Date().getHours();
+  const greeting    = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const name        = SESSION.employee_name;
+  const designation = SESSION.designation;
+  const initials    = name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0,2);
+  const dateDisplay = new Date().toLocaleDateString("en-IN", { weekday:"short", day:"numeric", month:"short", year:"numeric" });
+
+  const showToast = (message, type="success") => setToast({ message, type });
+
+  const handleMorningSubmit = async (_t, fd) => { setLoading(true); try { await new Promise(r=>setTimeout(r,1200)); showToast("Morning Report submitted successfully!","success"); } catch { showToast("Failed to submit Morning Report.","error"); } finally { setLoading(false); } };
+  const handleEveningSubmit = async (_t, fd) => { setLoading(true); try { await new Promise(r=>setTimeout(r,1200)); showToast("Evening Report submitted successfully!","success"); } catch { showToast("Failed to submit Evening Report.","error"); } finally { setLoading(false); } };
+  const handlePunchIn  = async coords => { setLoading(true); try { await new Promise(r=>setTimeout(r,900)); const time = new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}); setAttendance(p=>({...p,punch_in:time})); showToast(`Punch In recorded at ${time}!`,"success"); } catch { showToast("Punch In failed.","error"); } finally { setLoading(false); } };
+  const handlePunchOut = async coords => { setLoading(true); try { await new Promise(r=>setTimeout(r,900)); const time = new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}); setAttendance(p=>({...p,punch_out:time,total_hours:"8.00"})); showToast(`Punch Out recorded at ${time}!`,"success"); } catch { showToast("Punch Out failed.","error"); } finally { setLoading(false); } };
+
+  const tabs = [
+    { id:"morning",    label:"Morning Report", icon:"M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" },
+    { id:"evening",    label:"Evening Report", icon:"M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" },
+    { id:"attendance", label:"Attendance",     icon:"M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2 M9 5a2 2 0 002 2h2a2 2 0 002-2 M9 5a2 2 0 012-2h2a2 2 0 012 2 M9 12l2 2 4-4" },
+  ];
+
+  // Notification mock data
+  const notifications = [
+    { id:1, msg:"Morning report for today is pending", time:"9:00 AM",  dot:"var(--pink)" },
+    { id:2, msg:"Punch In recorded successfully",      time:"8:45 AM",  dot:"var(--blue)" },
+    { id:3, msg:"Expense approval from manager",       time:"Yesterday", dot:"var(--amber)" },
+  ];
+
+  /* ── Shared Sidebar Content ─────────────────────────────── */
+  const SidebarContent = ({ isMobile = false }) => (
+    <div className="flex flex-col h-full">
+
+      {/* ── Header: Logo + Collapse btn ─────────────────── */}
+      <div className="flex items-center px-4 py-4 border-b" style={{borderColor:"var(--border)",minHeight:64}}>
+        {/* Emblem always visible */}
+        <div className="flex-shrink-0 flex items-center justify-center" style={{width:36,height:36}}>
+          <SESSEmblem size={34} />
+        </div>
+
+        {/* Brand text — hidden when collapsed (desktop) */}
+        {(!collapsed || isMobile) && (
+          <div className="ml-2.5 flex-1 min-w-0 hide-on-collapse">
+            <p className="font-syne font-bold text-[15px] leading-tight truncate" style={{color:"var(--txt)"}}>SESS</p>
+            <p className="font-mono text-[9.5px] truncate" style={{color:"var(--pink)",opacity:.55}}>Field Report System</p>
+          </div>
+        )}
+
+        {/* Collapse toggle — desktop only */}
+        {!isMobile && (
+          <button onClick={() => setCollapsed(c => !c)}
+            className="ml-auto flex items-center justify-center w-7 h-7 rounded-lg transition-colors cursor-pointer border-none"
+            style={{background:"rgba(34,229,245,0.07)",color:"var(--txt-dim)",flexShrink:0}}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
+            <Ic d={collapsed ? "M9 18l6-6-6-6" : "M15 18l-6-6 6-6"} size={14} />
+          </button>
+        )}
+
+        {/* Mobile close btn */}
+        {isMobile && (
+          <button onClick={() => setSidebarOpen(false)}
+            className="ml-2 cursor-pointer border-none"
+            style={{background:"none",color:"var(--txt-dim)"}}>
+            <Ic d="M18 6L6 18M6 6l12 12" size={18} />
+          </button>
+        )}
+      </div>
+
+      {/* ── Nav ─────────────────────────────────────────── */}
+      <nav className="flex-1 px-2 py-4 flex flex-col gap-0.5 overflow-y-auto no-scrollbar">
+        {(!collapsed || isMobile) && (
+          <p className="font-mono text-[9px] px-2 pb-2 pt-1 uppercase tracking-widest" style={{color:"var(--pink)",opacity:.45}}>Reports</p>
+        )}
+
+        {tabs.map(t => (
+          <NavItem key={t.id} icon={t.icon} label={t.label} active={activeTab===t.id} collapsed={collapsed && !isMobile}
+            onClick={() => { setActiveTab(t.id); setSidebarOpen(false); }} />
+        ))}
+
+        <div className="my-2" style={{borderTop:"1px solid var(--border)"}} />
+
+        {(!collapsed || isMobile) && (
+          <p className="font-mono text-[9px] px-2 pb-2 pt-1 uppercase tracking-widest" style={{color:"var(--pink)",opacity:.45}}>More</p>
+        )}
+
+        <NavItem icon="M12 1v22 M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" label="Pay"
+          active={false} collapsed={collapsed && !isMobile} onClick={() => {}} />
+        <NavItem icon="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+          label="Settings" active={false} collapsed={collapsed && !isMobile} onClick={() => {}} />
+      </nav>
+
+      {/* ── Logout at bottom ────────────────────────────── */}
+      <div className="px-2 py-3 border-t" style={{borderColor:"var(--border)"}}>
+        <button
+          className="nav-btn relative flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium border-none cursor-pointer transition-all duration-150"
+          style={{background:"rgba(232,0,106,0.07)",color:"var(--pink)",justifyContent: (collapsed && !isMobile) ? "center" : "flex-start"}}
+          onMouseEnter={e => e.currentTarget.style.background="rgba(232,0,106,0.14)"}
+          onMouseLeave={e => e.currentTarget.style.background="rgba(232,0,106,0.07)"}
+          onClick={() => { /* logout */ }}
+        >
+          <Ic d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" size={15} />
+          {(!collapsed || isMobile) && <span className="nav-label">Logout</span>}
+          {(collapsed && !isMobile) && <span className="nav-tooltip">Logout</span>}
+        </button>
+      </div>
+    </div>
+  );
+
+  /* ── Profile dropdown item ──────────────────────────────── */
+  const ProfileMenuItem = ({ icon, label, danger, onClick }) => (
+    <button onClick={onClick}
+      className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-[13px] cursor-pointer border-none transition-colors text-left"
+      style={{background:"transparent",color: danger ? "var(--pink)" : "var(--txt-dim)"}}
+      onMouseEnter={e => e.currentTarget.style.background = danger ? "rgba(232,0,106,0.08)" : "rgba(34,229,245,0.06)"}
+      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+      <Ic d={icon} size={14} />
+      <span>{label}</span>
+    </button>
+  );
+
+  return (
+    <>
+      <GlobalStyles />
+      <div className={darkMode ? "" : "light"} style={{minHeight:"100vh",background:"var(--bg)"}}>
+
+        {/* Toast */}
+        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+        {/* Mobile overlay */}
+        {sidebarOpen && (
+          <div onClick={() => setSidebarOpen(false)}
+            className="fixed inset-0 z-[200] lg:hidden"
+            style={{background:"rgba(0,0,0,0.65)",backdropFilter:"blur(4px)"}} />
+        )}
+
+        <div className="flex min-h-screen">
+
+          {/* ── Desktop Sidebar ──────────────────────────── */}
+          <aside className="hidden lg:flex flex-col flex-shrink-0 sticky top-0 h-screen overflow-y-auto overflow-x-hidden transition-all duration-300 no-scrollbar"
+            style={{
+              width: collapsed ? 64 : 220,
+              background:"var(--surf)",
+              borderRight:"1px solid var(--border)"
+            }}>
+            <SidebarContent isMobile={false} />
+          </aside>
+
+          {/* ── Mobile Sidebar ───────────────────────────── */}
+          <aside className={`fixed top-0 left-0 h-full z-[300] overflow-y-auto flex flex-col lg:hidden transition-transform duration-300 ease-in-out`}
+            style={{
+              width: 240,
+              background:"var(--surf)",
+              borderRight:"1px solid var(--border)",
+              transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)"
+            }}>
+            <SidebarContent isMobile={true} />
+          </aside>
+
+          {/* ── Main ─────────────────────────────────────── */}
+          <div className="flex flex-col flex-1 min-w-0">
+
+            {/* ── Topbar ───────────────────────────────────── */}
+            <header className="sticky top-0 z-[100] flex items-center gap-3 px-4 sm:px-6 py-3"
+              style={{
+                background:"var(--surf)",
+                borderBottom:"1px solid var(--border)",
+                backdropFilter:"blur(20px)",
+                minHeight:58
+              }}>
+
+              {/* Mobile hamburger */}
+              <button onClick={() => setSidebarOpen(true)}
+                className="lg:hidden flex items-center justify-center w-9 h-9 rounded-xl cursor-pointer border transition-colors"
+                style={{background:"transparent",borderColor:"var(--border)",color:"var(--txt-dim)"}}>
+                <Ic d="M3 12h18 M3 6h18 M3 18h18" size={17} />
+              </button>
+
+              {/* Title */}
+              <div className="flex-1 min-w-0">
+                <h1 className="font-syne text-[16px] sm:text-[17px] font-bold truncate" style={{color:"var(--txt)"}}>Work Report Portal</h1>
+                <p className="font-mono text-[10px] mt-0.5 hidden sm:block" style={{color:"var(--pink)",opacity:.5}}>{greeting}, {name.split(" ")[0]} — have a productive day</p>
+              </div>
+
+              {/* Right actions */}
+              <div className="flex items-center gap-2 flex-shrink-0">
+
+                {/* Date chip */}
+                <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-xl border"
+                  style={{background:"var(--surf2)",borderColor:"var(--border)"}}>
+                  <Ic d="M8 2v4 M16 2v4 M3 10h18 M3 6a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2z" size={12} style={{color:"var(--pink)",opacity:.6}} />
+                  <span className="font-mono text-[11px]" style={{color:"var(--txt-dim)"}}>{dateDisplay}</span>
+                </div>
+
+                {/* Dark/Light toggle */}
+                <button onClick={() => setDarkMode(d => !d)}
+                  className="flex items-center justify-center w-9 h-9 rounded-xl border cursor-pointer transition-colors"
+                  style={{background:"var(--surf2)",borderColor:"var(--border)",color:"var(--txt-dim)"}}>
+                  <Ic d={darkMode ? "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" : "M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"} size={15} />
+                </button>
+
+                {/* Notification bell */}
+                <div className="relative" ref={notifRef}>
+                  <button onClick={() => { setNotifOpen(o => !o); setProfileOpen(false); }}
+                    className="flex items-center justify-center w-9 h-9 rounded-xl border cursor-pointer transition-colors relative"
+                    style={{background:"var(--surf2)",borderColor:"var(--border)",color:"var(--txt-dim)"}}>
+                    <Ic d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 01-3.46 0" size={15} />
+                    {/* Unread dot */}
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full anim-pulse"
+                      style={{background:"var(--pink)",border:"2px solid var(--surf)"}} />
+                  </button>
+
+                  {notifOpen && (
+                    <div className="absolute right-0 mt-2 w-72 rounded-2xl border shadow-2xl z-[500] anim-dropin overflow-hidden"
+                      style={{background:"var(--surf)",borderColor:"var(--border2)",top:"100%"}}>
+                      <div className="px-4 py-3 border-b flex items-center justify-between" style={{borderColor:"var(--border)"}}>
+                        <p className="font-syne text-[13px] font-bold" style={{color:"var(--txt)"}}>Notifications</p>
+                        <span className="font-mono text-[10px] px-2 py-0.5 rounded-md" style={{background:"rgba(232,0,106,0.1)",color:"var(--pink)"}}>3 new</span>
+                      </div>
+                      {notifications.map(n => (
+                        <div key={n.id} className="flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors"
+                          style={{borderBottom:"1px solid var(--border)"}}
+                          onMouseEnter={e => e.currentTarget.style.background="rgba(34,229,245,0.04)"}
+                          onMouseLeave={e => e.currentTarget.style.background="transparent"}>
+                          <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{background:n.dot}} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[12.5px] leading-snug" style={{color:"var(--txt)"}}>{n.msg}</p>
+                            <p className="font-mono text-[10px] mt-0.5" style={{color:"var(--txt-muted)"}}>{n.time}</p>
+                          </div>
+                        </div>
+                      ))}
+                      <div className="px-4 py-2.5 text-center">
+                        <button className="font-mono text-[11px] cursor-pointer border-none bg-transparent" style={{color:"var(--pink)"}}>View all notifications</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* User profile chip */}
+                <div className="relative" ref={profileRef}>
+                  <button onClick={() => { setProfileOpen(o => !o); setNotifOpen(false); }}
+                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl border cursor-pointer transition-colors"
+                    style={{background:"var(--surf2)",borderColor:"var(--border2)"}}>
+                    {/* Avatar */}
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 font-syne font-bold text-xs text-white"
+                      style={{background:"linear-gradient(135deg,var(--pink),var(--blue))"}}>
+                      {initials}
+                    </div>
+                    <div className="hidden sm:block text-left leading-tight">
+                      <p className="font-syne text-[12px] font-bold leading-none" style={{color:"var(--txt)"}}>{name}</p>
+                      <p className="font-mono text-[9.5px] mt-0.5" style={{color:"var(--pink)",opacity:.6}}>{designation}</p>
+                    </div>
+                    <Ic d="M6 9l6 6 6-6" size={12} style={{color:"var(--txt-muted)"}} />
+                  </button>
+
+                  {profileOpen && (
+                    <div className="absolute right-0 mt-2 w-52 rounded-2xl border shadow-2xl z-[500] anim-dropin overflow-hidden"
+                      style={{background:"var(--surf)",borderColor:"var(--border2)",top:"100%"}}>
+                      {/* Mini profile header */}
+                      <div className="px-4 py-3 border-b" style={{borderColor:"var(--border)"}}>
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-xl flex items-center justify-center font-syne font-bold text-sm text-white"
+                            style={{background:"linear-gradient(135deg,var(--pink),var(--blue))"}}>
+                            {initials}
+                          </div>
+                          <div>
+                            <p className="font-syne text-[13px] font-bold" style={{color:"var(--txt)"}}>{name}</p>
+                            <p className="font-mono text-[10px]" style={{color:"var(--pink)",opacity:.6}}>{designation}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-2">
+                        <ProfileMenuItem icon="M12 12a4 4 0 100-8 4 4 0 000 8z M4 20c0-4 3.6-7 8-7s8 3 8 7" label="My Profile" />
+                        <ProfileMenuItem icon="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" label="Help & Support" />
+                        <div className="my-1" style={{borderTop:"1px solid var(--border)"}} />
+                        <ProfileMenuItem icon="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" label="Logout" danger />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            </header>
+
+            {/* ── Content ──────────────────────────────────── */}
+            <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-6">
+              {activeTab === "morning"    && <MorningTab    employeeName={name} today={today} onSubmit={handleMorningSubmit} loading={loading} />}
+              {activeTab === "evening"    && <EveningTab    employeeName={name} today={today} onSubmit={handleEveningSubmit} loading={loading} />}
+              {activeTab === "attendance" && <AttendanceTab attendanceRecord={attendanceRecord} onPunchIn={handlePunchIn} onPunchOut={handlePunchOut} loading={loading} />}
+            </main>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}

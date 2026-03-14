@@ -1,0 +1,269 @@
+// ─── EveningReport.jsx ───────────────────────────────────────────────────────
+// Full Evening Report form: Basic Info, Work Summary, Expense Details, Attachment.
+// Props:
+//   employeeName  string
+//   today         string  – ISO date yyyy-mm-dd
+//   onSubmit      fn(type, FormData, formState)
+//   loading       bool
+
+import { useState } from "react";
+import {
+  SectionCard, Field, ExpGroup,
+  TInput, TTextarea, TFile, SubmitBtn,
+} from "./SharedUI";
+
+export default function EveningReport({ employeeName, today, onSubmit, loading }) {
+  const [form, setForm] = useState({
+    senior_junior_evening: "",
+    customer_name_evening: "",
+    work_type: "", task_status: "",
+    completed_date: "", model_no: "", serial_no: "",
+    tomorrow_plan: "", km_start: "", scope_detail: "",
+    bus_fare: "", bus_detail: "",
+    lodging_fare: "", lodging_detail: "",
+    food_charges: "",
+    local_exp: "", local_exp_detail: "",
+    km_start_exp: "", km_end: "", total_km: "", travel_detail: "",
+    transport_charge: "", transport_reason: "",
+    auto_charge: "", auto_reason: "",
+    material_cost: "", material_bill: "",
+  });
+  const [file, setFile] = useState(null);
+
+  const set = (k) => (e) => {
+    const v = e.target.value;
+    setForm(prev => {
+      const next = { ...prev, [k]: v };
+      if (k === "km_start_exp" || k === "km_end") {
+        const s  = parseFloat(k === "km_start_exp" ? v : next.km_start_exp);
+        const en = parseFloat(k === "km_end"       ? v : next.km_end);
+        next.total_km = (!isNaN(s) && !isNaN(en) && en >= s) ? (en - s).toFixed(1) : "";
+      }
+      return next;
+    });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    if (file) fd.append("attachment_evening", file);
+    onSubmit("evening", fd, form);
+  };
+
+  const divStyle = {
+    borderBottom: "1px solid var(--border)",
+    paddingBottom: "1.25rem",
+    marginBottom: "1.25rem",
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="anim-fadeup">
+
+      {/* ── Basic Information ──────────────────────────────────── */}
+      <SectionCard
+        icon="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2 M12 11a4 4 0 100-8 4 4 0 000 8z"
+        iconBg="rgba(245,166,35,0.12)" iconColor="var(--amber)"
+        title="Basic Information" sub="Employee & date details"
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Field label="Employee Name">
+            <TInput value={employeeName} readOnly />
+          </Field>
+          <Field label="Report Date">
+            <TInput type="date" value={today} readOnly />
+          </Field>
+          <Field label="Senior / Junior">
+            <TInput
+              name="senior_junior_evening"
+              value={form.senior_junior_evening}
+              onChange={set("senior_junior_evening")}
+              placeholder="Senior / Junior"
+              required
+            />
+          </Field>
+        </div>
+      </SectionCard>
+
+      {/* ── Work Summary ───────────────────────────────────────── */}
+      <SectionCard
+        icon="M9 11l3 3L22 4 M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"
+        iconBg="rgba(34,229,245,0.10)" iconColor="var(--pink)"
+        title="Work Summary" sub="Customer, work type, task status & equipment"
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+          <Field label="Customer Name">
+            <TInput name="customer_name_evening" value={form.customer_name_evening} onChange={set("customer_name_evening")} placeholder="Customer name" required />
+          </Field>
+          <Field label="Work Type">
+            <TInput name="work_type" value={form.work_type} onChange={set("work_type")} placeholder="e.g. AMC, Repair" required />
+          </Field>
+          <Field label="Task Status">
+            <TInput name="task_status" value={form.task_status} onChange={set("task_status")} placeholder="Completed / Pending" required />
+          </Field>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+          <Field label="Completed Date">
+            <TInput name="completed_date" type="date" value={form.completed_date} onChange={set("completed_date")} required />
+          </Field>
+          <Field label="Model No">
+            <TInput name="model_no" value={form.model_no} onChange={set("model_no")} placeholder="Equipment model" required />
+          </Field>
+          <Field label="Serial No">
+            <TInput name="serial_no" value={form.serial_no} onChange={set("serial_no")} placeholder="Equipment serial" required />
+          </Field>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <Field label="Tomorrow's Plan">
+            <TInput name="tomorrow_plan" value={form.tomorrow_plan} onChange={set("tomorrow_plan")} placeholder="Plan for next day" />
+          </Field>
+          <Field label="KM Start">
+            <TInput name="km_start" type="number" value={form.km_start} onChange={set("km_start")} placeholder="Odometer at start" />
+          </Field>
+        </div>
+
+        <Field label="Scope Detail">
+          <TTextarea
+            name="scope_detail"
+            value={form.scope_detail}
+            onChange={set("scope_detail")}
+            placeholder="Describe the scope of work done today in detail..."
+            required
+          />
+        </Field>
+      </SectionCard>
+
+      {/* ── Expense Details ────────────────────────────────────── */}
+      <SectionCard
+        icon="M12 1v22 M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"
+        iconBg="rgba(232,0,106,0.10)" iconColor="var(--pink)"
+        title="Expense Details" sub="Travel, lodging, food & all other charges"
+      >
+        {/* Row 1: Bus + Lodging */}
+        <div style={divStyle} className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <ExpGroup label="Bus / Transport" badge="TRAVEL" badgeColor="var(--blue)">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Bus Fare (₹)">
+                <TInput name="bus_fare" type="number" value={form.bus_fare} onChange={set("bus_fare")} placeholder="0.00" />
+              </Field>
+              <Field label="Bus Detail">
+                <TInput name="bus_detail" value={form.bus_detail} onChange={set("bus_detail")} placeholder="Route / operator" />
+              </Field>
+            </div>
+          </ExpGroup>
+
+          <ExpGroup label="Lodging / Stay" badge="STAY" badgeColor="var(--pink)">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Lodging Fare (₹)">
+                <TInput name="lodging_fare" type="number" value={form.lodging_fare} onChange={set("lodging_fare")} placeholder="0.00" />
+              </Field>
+              <Field label="Lodging Detail">
+                <TInput name="lodging_detail" value={form.lodging_detail} onChange={set("lodging_detail")} placeholder="Hotel name" />
+              </Field>
+            </div>
+          </ExpGroup>
+        </div>
+
+        {/* Row 2: Food + Local */}
+        <div style={divStyle} className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <ExpGroup label="Food" badge="FOOD" badgeColor="var(--amber)">
+            <Field label="Food Charges (₹)">
+              <TInput name="food_charges" type="number" value={form.food_charges} onChange={set("food_charges")} placeholder="0.00" />
+            </Field>
+          </ExpGroup>
+
+          <ExpGroup label="Local Expense" badge="LOCAL" badgeColor="var(--pink)">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Local Exp (₹)">
+                <TInput name="local_exp" type="number" value={form.local_exp} onChange={set("local_exp")} placeholder="0.00" />
+              </Field>
+              <Field label="Detail">
+                <TInput name="local_exp_detail" value={form.local_exp_detail} onChange={set("local_exp_detail")} placeholder="Description" />
+              </Field>
+            </div>
+          </ExpGroup>
+        </div>
+
+        {/* Row 3: KM + Transport */}
+        <div style={divStyle} className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <ExpGroup label="Odometer & Travel" badge="KM" badgeColor="var(--blue)">
+            {/* KM Start / KM End / Total KM — 3-col on sm, stacked on mobile */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+              <Field label="KM Start">
+                <TInput name="km_start_exp" type="number" value={form.km_start_exp} onChange={set("km_start_exp")} placeholder="Start reading" />
+              </Field>
+              <Field label="KM End">
+                <TInput name="km_end" type="number" value={form.km_end} onChange={set("km_end")} placeholder="End reading" />
+              </Field>
+              <Field label="Total KM (Auto)">
+                <TInput name="total_km" value={form.total_km} readOnly computed placeholder="—" />
+              </Field>
+            </div>
+            {/* Travel detail — full width below */}
+            <Field label="Travel Detail">
+              <TInput name="travel_detail" value={form.travel_detail} onChange={set("travel_detail")} placeholder="Route / vehicle" />
+            </Field>
+          </ExpGroup>
+
+          <ExpGroup label="Transport Charge" badge="FARE" badgeColor="var(--pink)">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Transport (₹)">
+                <TInput name="transport_charge" type="number" value={form.transport_charge} onChange={set("transport_charge")} placeholder="0.00" />
+              </Field>
+              <Field label="Reason">
+                <TInput name="transport_reason" value={form.transport_reason} onChange={set("transport_reason")} placeholder="Reason" />
+              </Field>
+            </div>
+          </ExpGroup>
+        </div>
+
+        {/* Row 4: Auto + Material */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <ExpGroup label="Auto Charge">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Auto (₹)">
+                <TInput name="auto_charge" type="number" value={form.auto_charge} onChange={set("auto_charge")} placeholder="0.00" />
+              </Field>
+              <Field label="Reason">
+                <TInput name="auto_reason" value={form.auto_reason} onChange={set("auto_reason")} placeholder="Reason" />
+              </Field>
+            </div>
+          </ExpGroup>
+
+          <ExpGroup label="Material" badge="PARTS" badgeColor="var(--amber)">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Material (₹)">
+                <TInput name="material_cost" type="number" value={form.material_cost} onChange={set("material_cost")} placeholder="0.00" />
+              </Field>
+              <Field label="Bill No">
+                <TInput name="material_bill" value={form.material_bill} onChange={set("material_bill")} placeholder="Reference" />
+              </Field>
+            </div>
+          </ExpGroup>
+        </div>
+      </SectionCard>
+
+      {/* ── Attachment ─────────────────────────────────────────── */}
+      <SectionCard
+        icon="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"
+        iconBg="rgba(59,91,255,0.10)" iconColor="var(--blue)"
+        title="Attachment" sub="Upload evening report supporting file"
+      >
+        <div className="max-w-md">
+          <Field label="File Attachment">
+            <TFile name="attachment_evening" onChange={e => setFile(e.target.files[0])} />
+          </Field>
+        </div>
+      </SectionCard>
+
+      {/* ── Submit ─────────────────────────────────────────────── */}
+      <SubmitBtn
+        label="🌙  Submit Evening Report"
+        loading={loading}
+        gradient="linear-gradient(135deg,var(--pink),var(--pink-dk))"
+        shadow="0 8px 32px rgba(232,0,106,0.25)"
+      />
+    </form>
+  );
+}

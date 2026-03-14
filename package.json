@@ -1,0 +1,37 @@
+{
+  "name": "spot-poc",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://gitea.spotft.com:3000/spotft/spot-poc.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/react": "^19.0.12"
+  },
+  "dependencies": {
+    "axios": "^1.8.4",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "framer-motion": "^12.6.2",
+    "jsonwebtoken": "^9.0.3",
+    "lucide-react": "^0.484.0",
+    "multer": "^1.4.5-lts.2",
+    "mysql2": "^3.14.0",
+    "path": "^0.12.7",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router": "^7.4.1",
+    "react-router-dom": "^7.4.0"
+  }
+}
