@@ -1,13 +1,5 @@
 const express = require("express");
 const router = express.Router();
-
-// const db = require("../../Db-config/db");
-const morningReportRoutes = require("./src/backend/routes/morningReportRoutes.js");
-const eveningReportRoutes = require("./src/backend/routes/eveningReportRoutes.js")
-
-router.use("/reports", morningReportRoutes);
-router.use("/status", eveningReportRoutes);
-
 // Import Routes
 // const authRoutes = require("./src/backend/routes/authRoutes");
 // const managerRoutes = require("./src/backend/routes/managerRoutes");
